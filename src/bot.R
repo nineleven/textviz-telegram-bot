@@ -20,7 +20,7 @@ encode_text <- function(text) {
 }
 
 build_dataframe <- function(words, codes) {
-  "Build a dataframe of words and their codes"
+  "Build a dataframe of words and their 2d codes"
   num_codes <- length(codes)
   codes_matrix <- matrix(data = unlist(codes), 
                          nrow = num_codes, byrow = TRUE)
@@ -44,14 +44,16 @@ compute_limits <- function(encoded_words) {
   ymax <- max(encoded_words$Y)
   
   width <- 1e-3 + xmax - xmin
-  height <-1e-3 + ymax - ymin
+  height <- 1e-3 + ymax - ymin
   
   xlims <- c(xmin - width * PLOT_LIMITS_MARGIN_COEF, 
              xmax + width * PLOT_LIMITS_MARGIN_COEF)
   ylims <- c(ymin - height * PLOT_LIMITS_MARGIN_COEF, 
              ymax + height * PLOT_LIMITS_MARGIN_COEF)
   
-  return(list(x=xlims, y=ylims))
+  lims = list(x=xlims, y=ylims)
+  
+  return(lims)
 }
 
 save_image <- function(name, encoded_words) {
@@ -59,15 +61,12 @@ save_image <- function(name, encoded_words) {
   
   lims <- compute_limits(encoded_words)
   
-  print(lims)
-  
   fig <- ggplot(
     data = encoded_words, 
     aes(x = X, y = Y, label = W)
-  ) + lims(x=lims$x, y=lims$y) + geom_text(check_overlap = FALSE, 
-                                           size = 5)
+  ) + lims(x=lims$x, y=lims$y) + geom_text(size = 5)
   
-  ggplot2::ggsave(name, fig)
+  ggsave(name, fig)
 }
 
 delete_image <- function(name) {
@@ -85,12 +84,12 @@ message <- function(bot, update) {
   })
   
   if (is.null(wordscodes)) {
-    bot$sendMessage(chat_id, 'An error occured \U0001F616. Maybe try one more time?')
+    bot$sendMessage(chat_id, UNKNOWN_ERROR_TEXT)
     return()
   }
   
   if (length(wordscodes$words) < MIN_WORDS) {
-    bot$sendMessage(chat_id, 'Your message seems to be too short for me to understand \U0001F616. Please, don\'t hit me.')
+    bot$sendMessage(chat_id, NOT_ENOUGH_WORDS_ERROR_TEXT)
     return()
   }
 
@@ -99,14 +98,23 @@ message <- function(bot, update) {
   tmp_image_name <- paste0('tmp', chat_id, '.png')
   
   save_image(tmp_image_name, encoded_words)
+  
   bot$sendPhoto(chat_id, tmp_image_name)
+  bot$sendMessage(chat_id, SUCCESS_MESSAGE)
+  
   delete_image(tmp_image_name)
+}
+
+cmd_start <- function(bot, update) {
+  chat_id <- update$message$chat_id
+  bot$sendMessage(chat_id, START_MESSAGE)
 }
 
 
 updater <- Updater(token = bot_token(botName))
 
+cmd_start_handler <- CommandHandler('start', cmd_start)
 msg_handler <- MessageHandler(message)
-updater <- updater + msg_handler
+updater <- updater + cmd_start_handler + msg_handler
 
 updater$start_polling()
