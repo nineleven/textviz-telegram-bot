@@ -1,3 +1,5 @@
 ENV_PATH <- '.env'
 botName <- 'TextViz'
-INSTRUCTIONS <- 'Use /viz command to vizualize your text'
+INCODE_API_URL <- 'https://text-viz.herokuapp.com/api/encode_text/'
+MIN_WORDS <- 2
+PLOT_LIMITS_MARGIN_COEF <- 0.1
